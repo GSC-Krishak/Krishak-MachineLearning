@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "crop_predictor:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "crop_predictor:app", "--host", "0.0.0.0", "--port", "6969"]
