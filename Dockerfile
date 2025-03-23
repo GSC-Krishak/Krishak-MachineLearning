@@ -2,6 +2,9 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
+ENV PORT 6969
+ENV HOST 0.0.0.0
+
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
