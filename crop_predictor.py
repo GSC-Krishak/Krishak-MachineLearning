@@ -43,10 +43,12 @@ class CropRequest(BaseModel):
     state: str
 
 # Function to retrieve top N matches
-def retrieve_top_matches(query, top_n = 3):
+def retrieve_top_matches(query: str, top_n: int = 3):
     query_embedding = embed_model.encode([query])
-    D, I = index.search(np.array(query_embedding, dtype=np.float32), top_n)
+    query_embedding = np.array(query_embedding, dtype=np.float32).reshape(1, -1)  # Ensure 2D shape
+    D, I = index.search(query_embedding, top_n)
     return [structured_data[i] for i in I[0]]
+
 
 # Function to determine the season
 def get_season():
