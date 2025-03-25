@@ -6,3 +6,5 @@ numpy
 google-generativeai
 python-dotenv
 faiss-cpu
+requests
+pandas
