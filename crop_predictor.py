@@ -10,6 +10,10 @@ import os
 import logging
 import torch
 import random
+from dotenv import load_dotenv  # Ensure dotenv is imported
+
+# Load environment variables
+load_dotenv()
 
 # Set seed for reproducibility
 SEED = 42
@@ -28,12 +32,19 @@ embed_model = SentenceTransformer("all-MiniLM-L6-v2", device=device)
 
 with open("faiss_index.pkl", "rb") as f:
     index = pickle.load(f)
+# import faiss
+
+# index = faiss.read_index("faiss_index.pkl")
 
 with open("structured_data.pkl", "rb") as f:
     structured_data = pickle.load(f)
 
 # Configure Gemini API
-genai.configure(api_key="AIzaSyDEthHdx0TfOC0A_wIQsAWoQTXyPo-EcsM")  # Replace with actual API key
+api_key = os.getenv("GENAI_API_KEY")
+if not api_key:
+    raise ValueError("GENAI_API_KEY is not set in the environment variables.")
+genai.configure(api_key=api_key)  # Ensure the API key is passed correctly
+
 model = genai.GenerativeModel(model_name="gemini-1.5-pro")
 
 app = FastAPI()
