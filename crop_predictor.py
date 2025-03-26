@@ -16,6 +16,12 @@ from dotenv import load_dotenv  # Ensure dotenv is imported
 # Load environment variables
 load_dotenv()
 
+import random
+
+# Set seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
 
 
 app = FastAPI()
@@ -179,7 +185,7 @@ def generate_response(query, district, state, previous_crops):
         - **Not Best** → Requires adjustments but can still be grown  
         - **Not Recommended** → Poor compatibility or low profitability
 
-    ### **Output Format (Strict JSON) – No Explanations, Only Valid JSON:**  
+    ### **Output Format (Strict JSON) – No Explanations,Strictly follow the format of the output i do not want any inconsistencies in my output format ,Only Valid JSON:**  
     Return a JSON object **without any extra text**.ranking at least **5 crops** from best to least suitable, Example format:
     ```json
     {{
