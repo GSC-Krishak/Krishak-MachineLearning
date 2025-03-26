@@ -168,6 +168,7 @@ def generate_response(query, district, state, previous_crops):
       - Suggest an **alternative high-yield, profitable crop** based on real-time insights.  
       - Mark this with **"(AI Recommended)"** if the suggestion is based on external data.  
     3️⃣ **Fertilizer Optimization:**  
+      - List the fertilizer and profitability details for each recommended crop in numerical value.
       - List the fertilizers needed in **precise quantities** for optimal growth and 0 for the ones not required to add,but list all crops. 
       - If a nutrient is **deficient**, strictly suggest only the additional fertilizer's numerical value with precise quantities.  
       - If a nutrient is **excessive**, suggest corrective actions.  
