@@ -169,8 +169,14 @@ def generate_response(query, district, state, previous_crops):
       - Mark this with **"(AI Recommended)"** if the suggestion is based on external data.  
     3️⃣ **Fertilizer Optimization:**  
       - List the fertilizers needed in **precise quantities** for optimal growth and 0 for the ones not required to add,but list all crops. 
-      - If a nutrient is **deficient**, suggest additional fertilizers with precise quantities.  
+      - If a nutrient is **deficient**, strictly suggest only the additional fertilizer's numerical value with precise quantities.  
       - If a nutrient is **excessive**, suggest corrective actions.  
+    4️⃣ **Compatibility Ranking:**  
+      - Each recommended crop should be ranked based on soil compatibility and profitability using the following scale:  
+        - **Best** → Ideal compatibility and high profitability  
+        - **Good** → Moderate compatibility and profitability  
+        - **Not Best** → Requires adjustments but can still be grown  
+        - **Not Recommended** → Poor compatibility or low profitability
 
     ### **Output Format (Strict JSON) – No Explanations, Only Valid JSON:**  
     Return a JSON object **without any extra text**.ranking at least **5 crops** from best to least suitable, Example format:
