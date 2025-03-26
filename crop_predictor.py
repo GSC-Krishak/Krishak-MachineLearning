@@ -186,7 +186,7 @@ def generate_response(query, district, state, previous_crops):
         - **Not Recommended** → Poor compatibility or low profitability
 
     ### **Output Format (Strict JSON) – No Explanations,Strictly follow the format of the output i do not want any inconsistencies in my output format ,Only Valid JSON:**  
-    Return a JSON object **without any extra text**.ranking at least **5 crops** from best to least suitable, Example format:
+    Return a JSON object **without any extra text**.ranking at least **6 crops** from best to least suitable, Example format:
     ```json
     {{
         "Recommended_Crops": [
