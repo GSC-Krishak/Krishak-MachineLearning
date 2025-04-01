@@ -12,19 +12,68 @@ from fastapi.encoders import jsonable_encoder
 import subprocess
 import os
 from dotenv import load_dotenv  # Ensure dotenv is imported
+from apscheduler.schedulers.background import BackgroundScheduler
+import random
+
+scheduler = BackgroundScheduler()
 
 # Load environment variables
 load_dotenv()
 
-import random
 
 # Set seed for reproducibility
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
-
+#setting up fast api
 app = FastAPI()
+
+index = None
+embed_model=None
+api_key=None
+model=None
+chat_session=None
+fertilizer_cost=None
+
+def scheduled_task():
+    #run setup.py
+    subprocess.run(["python3","setup.py"])
+    print("successfully ran setup.py")
+    
+#loading faiss on fastapi startup
+@app.on_event("startup")
+def load_faiss():
+    global index,embed_model,api_key,model,chat_session,fertilizer_cost
+    #faiss index
+    index = faiss.read_index("crop_index.faiss")
+    #embedding model
+    embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+    # Configure Gemini API
+    api_key = os.getenv("GENAI_API_KEY")
+    if not api_key:
+        raise ValueError("GENAI_API_KEY is not set in the environment variables.")
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel(model_name="gemini-1.5-pro")
+    chat_session = model.start_chat(history=[])
+    # Fertilizer cost per unit
+    fertilizer_cost = {"N": 20, "P": 25, "K": 15, "Mg": 30, "Calcium": 10}
+    scheduler.add_job(scheduled_task, "cron", hour=10, minute=0)  # Run every day
+    scheduler.start()
+    print("started everything")
+
+#unloading faiss on fastapi shutdown
+@app.on_event("shutdown")
+def unload_faiss():
+    global index,embed_model,api_key,model,chat_session,fertilizer_cost
+    index = None
+    embed_model=None
+    api_key=None
+    model=None
+    chat_session=None
+    fertilizer_cost=None
+    scheduler.shutdown()
+    print('cleared everything')
 
 # Define request model
 class CropRecommendationRequest(BaseModel):
@@ -37,29 +86,13 @@ class CropRecommendationRequest(BaseModel):
     previous_crops: list
     district: str
     state: str
+    moisture: float
+    soil_type: str
 
-# Load embedding model
-embed_model = SentenceTransformer("all-MiniLM-L6-v2")
-
-# Load FAISS index
-index = faiss.read_index("crop_index.faiss")
 
 # Load structured data
 with open("structured_data.json", "r") as f:
     structured_data = json.load(f)
-
-# Configure Gemini API
-api_key = os.getenv("GENAI_API_KEY")
-if not api_key:
-    raise ValueError("GENAI_API_KEY is not set in the environment variables.")
-genai.configure(api_key=api_key)
-
-model = genai.GenerativeModel(model_name="gemini-1.5-pro")
-
-chat_session = model.start_chat(history=[])
-
-# Fertilizer cost per unit
-fertilizer_cost = {"N": 20, "P": 25, "K": 15, "Mg": 30, "Calcium": 10}
 
 # Function to retrieve top N matches
 def retrieve_top_matches(query, top_n=5):
@@ -123,7 +156,7 @@ def extract_json(response_text):
     except json.JSONDecodeError:
         return {"error": "AI response was not valid JSON"}
 
-def generate_response(query, district, state, previous_crops):
+def generate_response(query, district, state, previous_crops, moisture=None, soil_type=None):
     season = get_season()
     input_values = parse_query(query)
     
@@ -163,7 +196,9 @@ def generate_response(query, district, state, previous_crops):
     ### **Additional Context:**
     - **Location:** {district}, {state}  
     - **Current Season:** {season}  
-    - **Previously Grown Crops (Avoid for Rotation):** {', '.join(previous_crops) if previous_crops else "No recent crops recorded"}  
+    - **Moisture Content Percentage:** {moisture}
+    - **Soil Type(to avoid crops with fertilizer requirements in range but not suitable to the location and soil):** {soil_type}
+    - **Previously Grown Crops (Avoid for Rotation):** {', '.join(previous_crops) if previous_crops else ''}  
     - **Filtered Crops Based on Soil Data:** {crop_suggestions if crop_suggestions else "No direct match found"}  
     - **Latest Agricultural Insights:** Use up-to-date market prices, government policies, and farming trends to enhance recommendations.  
 
@@ -177,7 +212,7 @@ def generate_response(query, district, state, previous_crops):
       - List the fertilizer and profitability details for each recommended crop in numerical value.
       - List the fertilizers needed in **precise quantities** for optimal growth and 0 for the ones not required to add,but list all crops. 
       - If a nutrient is **deficient**, strictly suggest only the additional fertilizer's numerical value with precise quantities.  
-      - If a nutrient is **excessive**, suggest corrective actions.  
+      - If any of the nutrients is **excessive**, immediately stop processing further crop recommendation and only recommend "Grass" as the recommended crop.
     4️⃣ **Compatibility Ranking:**  
       - Each recommended crop should be ranked based on soil compatibility and profitability using the following scale:  
         - **Best** → Ideal compatibility and high profitability  
@@ -199,7 +234,7 @@ def generate_response(query, district, state, previous_crops):
                     "Phosphorus (P)": "Add 10 kg/ha",
                     "Magnesium (Mg)": "Add 5 ppm",
                     "Calcium (Ca)": "Add 5 ppm",
-                    "Water content": "Adjust to optimal level"
+                    "Water content": "Add 10%"
                 }},
                 "Compatibility": "Good"
             }}
@@ -215,7 +250,7 @@ def generate_response(query, district, state, previous_crops):
 @app.post("/recommend")
 def recommend_crop(request: CropRecommendationRequest):
     query = f"N: {request.n}, P: {request.p}, K: {request.k}, Mg: {request.mg}, Calcium: {request.calcium}, pH: {request.ph}"
-    response = generate_response(query, request.district, request.state, request.previous_crops)
+    response = generate_response(query, request.district, request.state, request.previous_crops,request.moisture,request.soil_type)
     return JSONResponse(content=response)  # Always valid JSON
 
 @app.get("/setup")

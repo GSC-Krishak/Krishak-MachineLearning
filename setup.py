@@ -18,24 +18,13 @@ logging.getLogger("grpc").setLevel(logging.ERROR)
 # Load pre-trained embedding model
 embed_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Configure Gemini API
-api_key = os.getenv("GENAI_API_KEY")
-if not api_key:
-    raise ValueError("GENAI_API_KEY is not set in the environment variables.")
-genai.configure(api_key=api_key)  # Replace with your actual API key
-
 generation_config = {
-    "temperature": 1,
+    "temperature": 0.8,
     "top_p": 0.95,
     "top_k": 40,
     "max_output_tokens": 8192,
     "response_mime_type": "text/plain",
 }
-
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-pro",
-    generation_config=generation_config,
-)
 
 # Load JSON data
 with open("standardized_crop_data.json", "r") as file:

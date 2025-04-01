@@ -1,1 +1,7 @@
 .env
+myenv
+standardized_crop_data.json
+structured_data.json
+enam_live_prices.csv
+crop_index.faiss
+__pycache__

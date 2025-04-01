@@ -8,3 +8,4 @@ python-dotenv
 faiss-cpu
 requests
 pandas
+apscheduler
