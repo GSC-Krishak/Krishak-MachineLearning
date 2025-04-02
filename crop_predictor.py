@@ -14,6 +14,7 @@ import os
 from dotenv import load_dotenv  # Ensure dotenv is imported
 from apscheduler.schedulers.background import BackgroundScheduler
 import random
+import asyncio
 
 scheduler = BackgroundScheduler()
 
@@ -33,33 +34,38 @@ index = None
 embed_model=None
 api_key=None
 model=None
-chat_session=None
 fertilizer_cost=None
 
 def scheduled_task():
     #run setup.py
+    global index
     subprocess.run(["python3","setup.py"])
+    index = faiss.read_index("crop_index.faiss")
     print("successfully ran setup.py")
     
 #loading faiss on fastapi startup
 @app.on_event("startup")
 def load_faiss():
     global index,embed_model,api_key,model,chat_session,fertilizer_cost
+
     #faiss index
     index = faiss.read_index("crop_index.faiss")
+
     #embedding model
     embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+
     # Configure Gemini API
     api_key = os.getenv("GENAI_API_KEY")
     if not api_key:
         raise ValueError("GENAI_API_KEY is not set in the environment variables.")
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(model_name="gemini-1.5-pro")
-    chat_session = model.start_chat(history=[])
+
     # Fertilizer cost per unit
     fertilizer_cost = {"N": 20, "P": 25, "K": 15, "Mg": 30, "Calcium": 10}
     scheduler.add_job(scheduled_task, "cron", hour=10, minute=0)  # Run every day
     scheduler.start()
+
     print("started everything")
 
 #unloading faiss on fastapi shutdown
@@ -88,7 +94,6 @@ class CropRecommendationRequest(BaseModel):
     state: str
     moisture: float
     soil_type: str
-
 
 # Load structured data
 with open("structured_data.json", "r") as f:
@@ -156,7 +161,7 @@ def extract_json(response_text):
     except json.JSONDecodeError:
         return {"error": "AI response was not valid JSON"}
 
-def generate_response(query, district, state, previous_crops, moisture=None, soil_type=None):
+async def generate_response(query, district, state, previous_crops, moisture=None, soil_type=None):
     season = get_season()
     input_values = parse_query(query)
     
@@ -242,15 +247,22 @@ def generate_response(query, district, state, previous_crops, moisture=None, soi
     }}
     ```
     """
-
+    chat_session = model.start_chat(history=[])
     response = chat_session.send_message(prompt)
 
     return extract_json(response.text)  # Extract only the JSON
 
 @app.post("/recommend")
-def recommend_crop(request: CropRecommendationRequest):
+async def recommend_crop(request: CropRecommendationRequest):
     query = f"N: {request.n}, P: {request.p}, K: {request.k}, Mg: {request.mg}, Calcium: {request.calcium}, pH: {request.ph}"
-    response = generate_response(query, request.district, request.state, request.previous_crops,request.moisture,request.soil_type)
+    request.moisture=request.moisture if request.moisture else None
+    request.soil_type=request.soil_type if request.soil_type else None
+    #for async function(process pool/event loop)
+    response =await generate_response(query, request.district, request.state, request.previous_crops,request.moisture,request.soil_type)
+    #for blocking function(threading)
+    # response = await asyncio.to_thread(
+    #     generate_response, query, request.district, request.state, request.previous_crops, request.moisture, request.soil_type
+    # )
     return JSONResponse(content=response)  # Always valid JSON
 
 @app.get("/setup")
