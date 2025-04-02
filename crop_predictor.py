@@ -217,7 +217,7 @@ async def generate_response(query, district, state, previous_crops, moisture=Non
       - List the fertilizer and profitability details for each recommended crop in numerical value.
       - List the fertilizers needed in **precise quantities** for optimal growth and 0 for the ones not required to add,but list all crops. 
       - If a nutrient is **deficient**, strictly suggest only the additional fertilizer's numerical value with precise quantities.  
-      - If any of the nutrients is **excessive**, immediately stop processing further crop recommendation and only recommend "Grass" as the recommended crop.
+      - If any of the nutrients is **excessive**, ouput "Grass" as the best recommended crop, and return the additional fertilizer quantity for every other crop as "Excessive".
     4️⃣ **Compatibility Ranking:**  
       - Each recommended crop should be ranked based on soil compatibility and profitability using the following scale:  
         - **Best** → Ideal compatibility and high profitability  
