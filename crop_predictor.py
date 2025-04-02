@@ -7,7 +7,7 @@ import google.generativeai as genai
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 from fastapi.encoders import jsonable_encoder
 import subprocess
 import os
@@ -92,8 +92,8 @@ class CropRecommendationRequest(BaseModel):
     previous_crops: list
     district: str
     state: str
-    moisture: float
-    soil_type: str
+    moisture: float = Field(default=0)
+    soil_type: str =Field(default="")
 
 # Load structured data
 with open("structured_data.json", "r") as f:
